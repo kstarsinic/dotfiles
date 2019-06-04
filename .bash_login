@@ -1,0 +1,118 @@
+# ~/.bash_login:
+#   If this file exists, then bash will read it instead of ~/.profile but not ~/.bash_profile
+#   /etc/profile is always read before this
+#   This is my preferred login file, because it has "login" in the name.
+
+# On Mac OS, /etc/profile sets PS1,
+#KEEP_PS1="$PS1"
+#export PS1=''
+#echo ".bash_login: PS1 [$PS1] KEEP_PS1 [$KEEP_PS1]"
+
+[ -e ~/.iterm2_shell_integration.bash ] && source ~/.iterm2_shell_integration.bash
+
+histdir="$HOME/.bash_hist/"
+
+if [ ! -d "$histdir" ]; then
+  echo "Creating $histdir"
+  mkdir -v "$histdir" || echo "Could not create $histdir"
+fi
+
+if [ -d "$histdir" ]; then
+  tty=`tty | sed -e 's,[/ ],-,g'`         # Turn "not a tty" into "not-a-tty"
+  export HISTFILE="$histdir/$tty"
+else
+  export HISTFILE="$HOME/.bash_history"
+fi
+
+export DROPBOX=""
+for dir in ~/Dropbox /Volumes/Spare/Dropbox; do
+  if [ -d "$dir" ]; then
+    DROPBOX="$dir";
+    break;
+  fi
+done
+
+if [ -z "$DROPBOX" ]; then
+  echo "No DROPBOX";
+  return;
+fi
+
+export HISTCONTROL=ignoredups           # Don't put duplicate lines in the history
+export HISTSIZE=1000                    # Lines in memory
+export HISTFILESIZE=2000                # Lines in file
+reset='[0m'
+green='[0;32m'
+export HISTTIMEFORMAT="${green}%Y-%m-%d %H:%M:%S${reset} "
+
+export NETRC="$HOME/Dropbox/Hosts/ALL/.netrc"
+
+export NODE_PATH
+if [ -z "$NODE_PATH" ]; then
+  NODE_PATH=''
+  for dir in /usr/local/Cellar/node/*/lib/node_modules /usr/local/npm_not_homebrew/lib/node_modules; do
+    if [ -d "$dir" ]; then
+      if [ -z "$NODE_PATH" ]; then
+        NODE_PATH="$dir"
+      else
+        NODE_PATH="$NODE_PATH:$dir"
+      fi
+    fi
+  done
+fi
+
+if [ -z "$pathmunge" ]; then
+  declare -A have_dir
+
+  export pathmunge=`date`
+
+  old_IFS="$IFS"
+  IFS=:
+
+  newpath=""
+
+  # Wow! which(1) doesn't expand "~" in $PATH, but type(1) does.
+  # ~/perl5/perlbrew/perls/*/bin
+  # for elem in ~/Dropbox/bin ~/bin /usr/local/share/npm/bin /usr/local/bin /usr/local/sbin /usr/sbin /usr/bin /bin; do
+  for elem in "$DROPBOX/bin" ~/bin ~/.local/bin /usr/local/share/npm/bin /usr/local/bin /usr/local/sbin /usr/sbin /usr/bin /bin; do
+    if [ -d "$elem" ]; then
+      if [ -z "$newpath" ]; then
+        newpath="$elem"
+      else
+        newpath="$newpath:$elem"
+      fi
+
+      have_dir[$elem]="y"
+    fi
+  done
+
+  for elem in $PATH; do
+    if [ -z "${have_dir[$elem]}" -a -d "$elem" ]; then
+      newpath="$newpath:$elem"
+    fi
+  done
+
+  PATH="$newpath"
+
+  IFS="$old_IFS"
+  eval "$(jenv init -)"
+
+  #. ~/perl5/perlbrew/etc/bashrc
+  #[ ! -d "$PERLBREW_HOME" ] && echo "No PERLBREW_HOME $PERLBREW_HOME: run 'perlbrew switch'"
+fi
+
+pb=`type -t perlbrew`
+echo "perlbrew: $pb"
+if [ "X$pb" != "function" ]; then
+  pbrc=~/perl5/perlbrew/etc/bashrc
+
+  if [ -e $pbrc ]; then
+    source $pbrc
+  else
+    echo "no local perlbrew: cannot find $pbrc"
+  fi
+fi
+
+[ ! -d "$PERLBREW_HOME" ] && echo "No PERLBREW_HOME $PERLBREW_HOME: run 'perlbrew switch'"
+
+[ -n "$BASH_VERSION" ] && [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
+
