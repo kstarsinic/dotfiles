@@ -1,9 +1,16 @@
 
 UNAME		= $(shell uname)
-BREWTOOLS	= ack ant@1.9 bash bash-completion@2 freetds git jenv mtr mysql nmap node openssl p7zip perl pstree sqlite unixodbc vim w3m wget
-CASKTOOLS	= basictex google-chrome dropbox java6 java libreoffice xquartz
-# caskroom/versions for java8
-TAPS		= homebrew/services keith/formulae caskroom/versions
+
+BREWTOOLS   = ack bash bash-completion@2 git mtr nmap node openssl p7zip perl pstree sqlite vim w3m wget
+BREWTOOLS  += ant@1.9 freetds jenv unixodbc
+BREWTOOLS  += inetutils                 # ftp (uses .netrc)
+BREWTOOLS  += mysql                     # mysql-client is tap-only
+
+CASKTOOLS   = basictex google-chrome dropbox java java6 libreoffice xquartz
+
+TAPS        = homebrew/services keith/formulae
+TAPS       += caskroom/versions     # java6
+
 DOTFILES	= .bash_login .bashrc
 
 # $^	All dependencies
@@ -16,13 +23,26 @@ DOTFILES	= .bash_login .bashrc
 # XXX get .bashrc and .bash_login from DROPBOX_ALL
 DROPBOX_ALL = .dataprinter .gitconfig .netrc .screenrc .vimrc .vim/autoload
 
-.PHONY: $(DOTFILES) $(DROPBOX_ALL) .bash_hist sudoers-local
+.PHONY: $(DOTFILES) $(DROPBOX_ALL) sudoers-local
 
-default: os_$(UNAME) bash dropbox perlbrew cpanm sudoers-local $(DROPBOX_ALL) ~/.vim/bundle/Vundle.vim
+default: os_$(UNAME) locate bash dropbox perlbrew cpanm sudoers-local $(DROPBOX_ALL) ~/.vim/bundle/Vundle.vim/.git
 
 os_Darwin: taps brewtools casktools brewinfo locate
 
-locate:
+show:
+	@echo "BREWTOOLS $(BREWTOOLS)"
+	@echo "CASKTOOLS $(CASKTOOLS)"
+	@echo "TAPS      $(TAPS)"
+
+FORCE:  # Pattern rules don't play nicely with .PHONY
+
+~/%: FORCE
+	@[ -e $@ ] || mkdir -p $@
+	@if [ ! -d $@ ]; then echo "$@ is not a directory"; exit 1; fi
+
+locate: os_$(UNAME)_locate
+
+os_Darwin_locate: sudoers-local
 	sudo launchctl list com.apple.locate || sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.locate.plist
 
 cpanm: perlbrew; @[ -x "$$PERLBREW_ROOT/bin/cpanm" ] || perlbrew install-cpanm
@@ -41,11 +61,11 @@ _brew:
 		fi; \
 	done; echo
 
-taps:		homebrew; @$(MAKE) _brew TITLE="homebrew taps"  WANTED="$(TAPS)"      CMD="tap"         INSTALLED="`brew tap`"
+taps:       homebrew; @$(MAKE) _brew TITLE="homebrew taps"  WANTED="$(TAPS)"      CMD="tap"         INSTALLED="`brew tap`"
 
-brewtools:	homebrew; @$(MAKE) _brew TITLE="homebrew tools" WANTED="$(BREWTOOLS)" CMD="install"     INSTALLED="`brew list`"
+brewtools:  homebrew; @$(MAKE) _brew TITLE="homebrew tools" WANTED="$(BREWTOOLS)" CMD="install"     INSTALLED="`brew list`"
 
-casktools:	homebrew; @$(MAKE) _brew TITLE="homebrew casks" WANTED="$(CASKTOOLS)" CMD="cask instal" INSTALLED="`brew cask list`"
+casktools:  homebrew; @$(MAKE) _brew TITLE="homebrew casks" WANTED="$(CASKTOOLS)" CMD="cask instal" INSTALLED="`brew cask list`"
 
 brewinfo:       homebrew
 	@echo "info files:"
@@ -68,23 +88,19 @@ dropbox:
 	@[ -L $(HOME)/Dropbox ] || ln -s /usr/local/Dropbox $(HOME)/Dropbox
 	@[ -e $(HOME)/Dropbox ] || open /Applications/Dropbox.app
 
-bash: .bash_hist $(DOTFILES)
+bash: ~/.bash_hist $(DOTFILES)
 	@if [ "$$SHELL" != "/usr/local/bin/bash" ]; then \
 		echo "SHELL is $$SHELL: use chsh(1)"; \
 		exit 1; \
 	fi
 
-.bash_hist: ; @[ -e ~/.bash_history ] && rm ~/.bash_history; [ -d ~/.bash_hist ] || mkdir ~/.bash_hist
-
 $(DOTFILES):                    ;         @$(MAKE) install_file_in_dir FILE=$@ DIR=~; \
 
-sudoers-local:                  ;         @$(MAKE) install_file_in_dir FILE=$@ DIR=/etc/sudoers.d
+sudoers-local:                  ;         @sudo $(MAKE) install_file_in_dir FILE=$@ DIR=/etc/sudoers.d
 
 $(DROPBOX_ALL):           dropbox ~/.vim; @$(MAKE) link_file_to_dir FILE=$@ SRC=~/Dropbox/Hosts/ALL DST=~
 
-~/.vim/bundle/Vundle.vim: ~/.vim/bundle;  git clone https://github.com/gmarik/Vundle.vim.git $@
-
-~/.vim ~/.vim/bundle:           ;         mkdir -p $@
+~/.vim/bundle/Vundle.vim/.git: ~/.vim/bundle/Vundle.vim;  git clone https://github.com/gmarik/Vundle.vim.git $<
 
 link_file_to_dir:
 	@echo "checking symlink " $(DST)/$(FILE); \

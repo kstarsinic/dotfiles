@@ -1,50 +1,47 @@
-# ~/.bash_login:
-#   If this file exists, then bash will read it instead of ~/.profile but not ~/.bash_profile
-#   /etc/profile is always read before this
-#   This is my preferred login file, because it has "login" in the name.
+# ~/.bash_login: read iff this is a login shell
+#   /etc/profile is read before this
+#   bash will read the first of .bash_profile, .bash_login, or .profile that it finds.
+#   This is my preferred login file, because it has both "bash" and "login" in the name.
 
-# On Mac OS, /etc/profile sets PS1,
-#KEEP_PS1="$PS1"
-#export PS1=''
-#echo ".bash_login: PS1 [$PS1] KEEP_PS1 [$KEEP_PS1]"
 
-[ -e ~/.iterm2_shell_integration.bash ] && source ~/.iterm2_shell_integration.bash
+### Prompt
+# https://en.wikipedia.org/wiki/ANSI_escape_code
+# CSI n1 ; n2 ... m       n1, etc. are SGR parameters
+# \e\[        Control Sequence Initator (ends with ASCII 64 (@) to 126 (~))
+#   ;         parameter separator
+# \e[${number}m:
+#   0         Reset all
+#   1         Bold
+#   30-37 FG  Black Red Green Yellow Blue Magenta Cyan White
+#   38    FG  5;${RGB}m   $RGB in [0, 255]          RGB = 36R + 6G + B + 16
+#   48    BG  5;${RGB}m   $RGB in [0, 255]
+#             0x00-0x07   standard colors           (e.g., [30-37)
+#             0x08-0x0F   high-intensity colors     (e.g., [90-97)
+#             0x10-0xE7   16 + 36R + 6G + B
+#             0xE8-0xFF   grayscale from black to white
+#   40-47 BG  Black Red Green Yellow Blue Magenta Cyan White
+#   49        Default background color
+# Bracketing '[]' is so bash doesn't count the characters
+reset='\[\e[0m\]'
+aqua='\[\e[38;5;27m\]'      # R0 B1 G5 (blue with a little green)
+blue='\[\e[0;34m\]'
+green='\[\e[0;32m\]'
+#screen='\[\e[0;38;5;62m\]'  # R1 G1 B4 lavender
 
-histdir="$HOME/.bash_hist/"
-
-if [ ! -d "$histdir" ]; then
-  echo "Creating $histdir"
-  mkdir -v "$histdir" || echo "Could not create $histdir"
-fi
-
-if [ -d "$histdir" ]; then
-  tty=`tty | sed -e 's,[/ ],-,g'`         # Turn "not a tty" into "not-a-tty"
-  export HISTFILE="$histdir/$tty"
-else
-  export HISTFILE="$HOME/.bash_history"
-fi
-
-export DROPBOX=""
-for dir in ~/Dropbox /Volumes/Spare/Dropbox; do
-  if [ -d "$dir" ]; then
-    DROPBOX="$dir";
-    break;
-  fi
-done
-
-if [ -z "$DROPBOX" ]; then
-  echo "No DROPBOX";
-  return;
-fi
-
-export HISTCONTROL=ignoredups           # Don't put duplicate lines in the history
-export HISTSIZE=1000                    # Lines in memory
-export HISTFILESIZE=2000                # Lines in file
-reset='[0m'
-green='[0;32m'
+# export AWT_TOOLKIT=CToolkit
+export BASH_COMPLETION_COMPAT_DIR=/usr/local/etc/bash_completion.d
+export EDITOR=vim
+export GIT_CEILING_DIRECTORIES="/usr/local"
+export HISTCONTROL=ignoredups                                     # Don't put duplicate lines in the history
+export HISTFILE="$HOME/.bash_hist/`tty | sed -e 's,[/ ],-,g'`"    # Turn "not a tty into "not-a-tty"
+export HISTFILESIZE=2000                                          # Lines in file
+export HISTSIZE=1000                                              # Lines in memory
 export HISTTIMEFORMAT="${green}%Y-%m-%d %H:%M:%S${reset} "
-
-export NETRC="$HOME/Dropbox/Hosts/ALL/.netrc"
+export LANG=en_US.UTF-8
+export LC_COLLATE=C
+export LESS='-ismR'
+# For assemblies from other formulae: export MONO_GAC_PREFIX=/usr/local
+export PAGER=less
 
 export NODE_PATH
 if [ -z "$NODE_PATH" ]; then
@@ -60,59 +57,78 @@ if [ -z "$NODE_PATH" ]; then
   done
 fi
 
-if [ -z "$pathmunge" ]; then
-  declare -A have_dir
+if ! shopt -oq posix; then
+  [[ -r "/usr/local/etc/profile.d/bash_completion.sh" ]] && . "/usr/local/etc/profile.d/bash_completion.sh"
+fi
 
-  export pathmunge=`date`
+export BASHOPTS
+shopt -s histappend                     # Append to the history file, don't overwrite it
+shopt -s checkwinsize                   # Update LINES and COLUMNS after each command
 
-  old_IFS="$IFS"
-  IFS=:
+### Begin PATH
+declare -A have_dir
 
-  newpath=""
+old_IFS="$IFS"
+IFS=:
 
-  # Wow! which(1) doesn't expand "~" in $PATH, but type(1) does.
-  # ~/perl5/perlbrew/perls/*/bin
-  # for elem in ~/Dropbox/bin ~/bin /usr/local/share/npm/bin /usr/local/bin /usr/local/sbin /usr/sbin /usr/bin /bin; do
-  for elem in "$DROPBOX/bin" ~/bin ~/.local/bin /usr/local/share/npm/bin /usr/local/bin /usr/local/sbin /usr/sbin /usr/bin /bin; do
-    if [ -d "$elem" ]; then
-      if [ -z "$newpath" ]; then
-        newpath="$elem"
-      else
-        newpath="$newpath:$elem"
-      fi
+newpath=""
 
-      have_dir[$elem]="y"
-    fi
-  done
-
-  for elem in $PATH; do
-    if [ -z "${have_dir[$elem]}" -a -d "$elem" ]; then
+# Wow! which(1) doesn't expand "~" in $PATH, but type(1) does.
+# ~/perl5/perlbrew/perls/*/bin
+for elem in ~/Dropbox/bin ~/bin ~/.local/bin /usr/local/share/npm/bin /usr/local/bin /usr/local/sbin /usr/sbin /usr/bin /bin; do
+  if [ -d "$elem" ]; then
+    if [ -z "$newpath" ]; then
+      newpath="$elem"
+    else
       newpath="$newpath:$elem"
     fi
-  done
 
-  PATH="$newpath"
-
-  IFS="$old_IFS"
-  eval "$(jenv init -)"
-
-  #. ~/perl5/perlbrew/etc/bashrc
-  #[ ! -d "$PERLBREW_HOME" ] && echo "No PERLBREW_HOME $PERLBREW_HOME: run 'perlbrew switch'"
-fi
-
-pb=`type -t perlbrew`
-echo "perlbrew: $pb"
-if [ "X$pb" != "function" ]; then
-  pbrc=~/perl5/perlbrew/etc/bashrc
-
-  if [ -e $pbrc ]; then
-    source $pbrc
-  else
-    echo "no local perlbrew: cannot find $pbrc"
+    have_dir[$elem]="y"
   fi
+done
+
+for elem in $PATH; do
+  [ -z "${have_dir[$elem]}" -a -d "$elem" ] && newpath="$newpath:$elem"
+done
+
+PATH="$newpath"
+
+IFS="$old_IFS"
+### End PATH
+
+source ~/perl5/perlbrew/etc/bashrc
+
+for i in  ~/etc/.bash_login*; do
+  if [ -f "$i" ]; then
+    . "$i"
+  fi
+done
+
+
+if [ -n "$PS1" ]; then # Interactive login shell
+  case "$TERM" in
+    xterm-color|xterm-256color|screen-256color)
+      PS1="${reset}[${green}\h${reset} ${aqua}\W${reset}${blue}\$(__git_ps1 \" (%s)\")${reset}]\$ " ;;
+    *)
+      PS1='\u@\h\w\$ ' ;;
+  esac
+
+  which -s jenv && eval "$(jenv init -)"
+  [ ! -d "$PERLBREW_HOME" ] && echo "No PERLBREW_HOME $PERLBREW_HOME: run 'perlbrew switch'"
+
+  # For BSD ls:
+  # inode:blockcount:numlinks:uname:gname:flags:filesize:filename
+  # user name=6, file size=10
+  [ -z "$LS_COLWIDTHS" ] && export LS_COLWIDTHS=':::6:::10:'
+
+  function xtitle() { echo -ne "\e]0;$1\007"; }
+  function stitle() { echo -ne "\ek$1\e\\"; }
+
+  # From ubuntu's default .bashrc: make less more friendly for non-text input files
+  # [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+  source .bashrc
+
+  oblique.pl
 fi
-
-[ ! -d "$PERLBREW_HOME" ] && echo "No PERLBREW_HOME $PERLBREW_HOME: run 'perlbrew switch'"
-
-[ -n "$BASH_VERSION" ] && [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
 
