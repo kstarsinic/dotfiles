@@ -6,7 +6,7 @@ BREWTOOLS  += ant@1.9 freetds jenv unixodbc
 BREWTOOLS  += inetutils                 # ftp (uses .netrc)
 BREWTOOLS  += mysql                     # mysql-client is tap-only
 
-CASKTOOLS   = basictex google-chrome dropbox java java6 libreoffice xquartz
+CASKTOOLS   = basictex google-chrome dropbox iterm2 java java6 libreoffice xquartz
 
 TAPS        = homebrew/services keith/formulae
 TAPS       += caskroom/versions     # java6
