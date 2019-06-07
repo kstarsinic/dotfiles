@@ -3,8 +3,10 @@ UNAME		= $(shell uname)
 
 BREWTOOLS   = ack bash bash-completion@2 git mtr nmap node openssl p7zip perl pstree sqlite vim w3m wget
 BREWTOOLS  += ant@1.9 freetds jenv unixodbc
-BREWTOOLS  += inetutils                 # ftp (uses .netrc)
-BREWTOOLS  += mysql                     # mysql-client is tap-only
+# BREWTOOLS  += global go                         # go: codesearch
+BREWTOOLS  += idutils
+BREWTOOLS  += inetutils                         # ftp (uses .netrc)
+BREWTOOLS  += mysql                             # mysql-client is tap-only
 
 CASKTOOLS   = basictex google-chrome dropbox iterm2 java java6 libreoffice xquartz
 
