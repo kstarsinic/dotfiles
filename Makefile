@@ -1,7 +1,7 @@
 
 UNAME		= $(shell uname)
 
-BREWTOOLS   = ack bash bash-completion@2 git mtr nmap node openssl p7zip perl pstree sqlite vim w3m wget
+BREWTOOLS   = ack bash bash-completion@2 git git-lfs mtr nmap node openssl p7zip perl pstree sqlite vim w3m wget
 BREWTOOLS  += ant@1.9 freetds jenv unixodbc
 # BREWTOOLS  += global go                         # go: codesearch
 BREWTOOLS  += idutils
