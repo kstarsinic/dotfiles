@@ -1,9 +1,8 @@
 
-UNAME		= $(shell uname)
+UNAME       = $(shell uname)
 
 BREWTOOLS   = ack bash bash-completion@2 git git-lfs mtr nmap node openssl p7zip perl pstree sqlite vim w3m wget
 BREWTOOLS  += ant@1.9 freetds jenv unixodbc
-# BREWTOOLS  += global go                         # go: codesearch
 BREWTOOLS  += idutils
 BREWTOOLS  += inetutils                         # ftp (uses .netrc)
 BREWTOOLS  += mysql                             # mysql-client is tap-only
@@ -13,21 +12,23 @@ CASKTOOLS   = basictex google-chrome dropbox iterm2 java java6 libreoffice xquar
 TAPS        = homebrew/services keith/formulae
 TAPS       += caskroom/versions     # java6
 
-DOTFILES	= .bash_login .bashrc
+DOTFILES    = .bash_login .bashrc
 
-# $^	All dependencies
-# $@	Target name
+# $^  All dependencies
+# $@  Target name
 # $*
 # $>
 # $<
 # $!
 
-# XXX get .bashrc and .bash_login from DROPBOX_ALL
-DROPBOX_ALL = .dataprinter .gitconfig .netrc .screenrc .vimrc .vim/autoload
+DROPBOX_LINK  = .gitconfig .netrc .screenrc .vimrc .vim/autoload
+.vim/autoload: ~/.vim
+DROPBOX_COPY  = .dataprinter
+DROPBOX_FILES = $(DROPBOX_LINK) $(DROPBOX_COPY)
 
-.PHONY: $(DOTFILES) $(DROPBOX_ALL) sudoers-local
+.PHONY: $(DOTFILES) $(DROPBOX_FILES) sudoers-local
 
-default: os_$(UNAME) locate bash dropbox perlbrew cpanm sudoers-local $(DROPBOX_ALL) ~/.vim/bundle/Vundle.vim/.git
+default: os_$(UNAME) locate bash dropbox perlbrew cpanm sudoers-local $(DROPBOX_FILES) ~/.vim/bundle/Vundle.vim/.git
 
 os_Darwin: taps brewtools casktools brewinfo locate
 
@@ -96,16 +97,20 @@ bash: ~/.bash_hist $(DOTFILES)
 		exit 1; \
 	fi
 
-$(DOTFILES):                    ;         @$(MAKE) install_file_in_dir FILE=$@ DIR=~; \
+$(DOTFILES):                    ;           @$(MAKE)      copy_file_to_dir FILE=$@ SRC=. DST=~
 
-sudoers-local:                  ;         @sudo $(MAKE) install_file_in_dir FILE=$@ DIR=/etc/sudoers.d
+sudoers-local:                  ;           @sudo $(MAKE) copy_file_to_dir FILE=$@ SRC=. DST=/etc/sudoers.d
 
-$(DROPBOX_ALL):           dropbox ~/.vim; @$(MAKE) link_file_to_dir FILE=$@ SRC=~/Dropbox/Hosts/ALL DST=~
+$(DROPBOX_LINK):                dropbox;    @$(MAKE)      link_file_to_dir FILE=$@ SRC=~/Dropbox/Hosts/ALL DST=~
 
-~/.vim/bundle/Vundle.vim/.git: ~/.vim/bundle/Vundle.vim;  git clone https://github.com/gmarik/Vundle.vim.git $<
+$(DROPBOX_COPY):                dropbox;    @$(MAKE)      copy_file_to_dir FILE=$@ SRC=~/Dropbox/Hosts/ALL DST=~
 
+# 'git clone' will mkdir -p
+~/.vim/bundle/Vundle.vim/.git:  git;        git clone https://github.com/gmarik/Vundle.vim.git $<
+
+# TODO: Check that $(DST)/$(FILE)'s target is $(SRC)/$(FILE)
 link_file_to_dir:
-	@echo "checking symlink " $(DST)/$(FILE); \
+	@echo "checking link " $(DST)/$(FILE); \
 	if [ ! -e $(DST)/$(FILE) ]; then \
 		ln -s $(SRC)/$(FILE) $(DST)/$(FILE); \
 	elif [ ! -L $(DST)/$(FILE) ]; then \
@@ -113,14 +118,16 @@ link_file_to_dir:
 		exit 1; \
 	fi
 
-install_file_in_dir:
-	@if ! cmp --quiet $(FILE) $(DIR)/$(FILE); then \
-		if [ -s $(DIR)/$(FILE) ]; then \
-			echo "$(DIR)/$(FILE) already exists; please resolve."; \
+# NOTE: If the destination is a symlink to a file that is byte-identical with the source, then no error
+copy_file_to_dir:
+	@echo "checking copy " $(DST)/$(FILE); \
+	if ! cmp --quiet $(SRC)/$(FILE) $(DST)/$(FILE); then \
+		if [ -s $(DST)/$(FILE) ]; then \
+			echo "$(DST)/$(FILE) already exists; please resolve."; \
 			exit 1; \
 		else \
-			echo "installing $(DIR)/$(FILE)"; \
-			cp $(FILE) $(DIR)/$(FILE); \
+			echo "installing $(DST)/$(FILE)"; \
+			cp $(SRC)/$(FILE) $(DST)/$(FILE); \
 		fi; \
 	fi
 
