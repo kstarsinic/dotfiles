@@ -7,7 +7,8 @@ BREWTOOLS  += idutils
 BREWTOOLS  += inetutils                         # ftp (uses .netrc)
 BREWTOOLS  += mysql                             # mysql-client is tap-only
 
-CASKTOOLS   = basictex google-chrome dropbox iterm2 java java6 libreoffice xquartz
+CASKTOOLS   = basictex google-chrome dropbox iterm2 libreoffice xquartz
+CASKTOOLS  += eclipse-java java java6
 
 TAPS        = homebrew/services keith/formulae
 TAPS       += caskroom/versions     # java6
@@ -22,13 +23,17 @@ DOTFILES    = .bash_login .bashrc
 # $!
 
 DROPBOX_LINK  = .gitconfig .netrc .screenrc .vimrc .vim/autoload
-.vim/autoload: ~/.vim
 DROPBOX_COPY  = .dataprinter
 DROPBOX_FILES = $(DROPBOX_LINK) $(DROPBOX_COPY)
 
 .PHONY: $(DOTFILES) $(DROPBOX_FILES) sudoers-local
 
 default: os_$(UNAME) locate bash dropbox perlbrew cpanm sudoers-local $(DROPBOX_FILES) ~/.vim/bundle/Vundle.vim/.git
+
+env:
+	@echo "BREWTOOLS $(BREWTOOLS)"
+	@echo "CASKTOOLS $(CASKTOOLS)"
+	@echo "TAPS      $(TAPS)"
 
 os_Darwin: taps brewtools casktools brewinfo locate
 
@@ -38,6 +43,8 @@ show:
 	@echo "TAPS      $(TAPS)"
 
 FORCE:  # Pattern rules don't play nicely with .PHONY
+
+.vim/autoload: FORCE ~/.vim
 
 ~/%: FORCE
 	@[ -e $@ ] || mkdir -p $@
@@ -106,7 +113,7 @@ $(DROPBOX_LINK):                dropbox;    @$(MAKE)      link_file_to_dir FILE=
 $(DROPBOX_COPY):                dropbox;    @$(MAKE)      copy_file_to_dir FILE=$@ SRC=~/Dropbox/Hosts/ALL DST=~
 
 # 'git clone' will mkdir -p
-~/.vim/bundle/Vundle.vim/.git:  git;        git clone https://github.com/gmarik/Vundle.vim.git $<
+~/.vim/bundle/Vundle.vim/.git:  ;           git clone https://github.com/gmarik/Vundle.vim.git $<
 
 # TODO: Check that $(DST)/$(FILE)'s target is $(SRC)/$(FILE)
 link_file_to_dir:
