@@ -37,6 +37,12 @@ env:
 
 os_Darwin: taps brewtools casktools brewinfo locate
 
+jenv_Darwin:
+	@for i in /Library/Java/JavaVirtualMachines/*/Contents/Home; do \
+		jenv add "$$i"; \
+	done; \
+	jenv versions
+
 show:
 	@echo "BREWTOOLS $(BREWTOOLS)"
 	@echo "CASKTOOLS $(CASKTOOLS)"
