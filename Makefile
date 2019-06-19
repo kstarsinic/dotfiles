@@ -8,7 +8,7 @@ BREWTOOLS  += inetutils                         # ftp (uses .netrc)
 BREWTOOLS  += mysql                             # mysql-client is tap-only
 
 CASKTOOLS   = basictex google-chrome dropbox iterm2 libreoffice xquartz
-CASKTOOLS  += eclipse-java java java6
+CASKTOOLS  += eclipse-java java java6 java11 adoptopenjdk8
 
 TAPS        = homebrew/services keith/formulae
 TAPS       += caskroom/versions     # java6
