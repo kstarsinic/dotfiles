@@ -43,11 +43,6 @@ jenv_Darwin:
 	done; \
 	jenv versions
 
-show:
-	@echo "BREWTOOLS $(BREWTOOLS)"
-	@echo "CASKTOOLS $(CASKTOOLS)"
-	@echo "TAPS      $(TAPS)"
-
 FORCE:  # Pattern rules don't play nicely with .PHONY
 
 .vim/autoload: FORCE ~/.vim
@@ -80,6 +75,8 @@ _brew:
 taps:       homebrew; @$(MAKE) _brew TITLE="homebrew taps"  WANTED="$(TAPS)"      CMD="tap"         INSTALLED="`brew tap`"
 
 brewtools:  homebrew; @$(MAKE) _brew TITLE="homebrew tools" WANTED="$(BREWTOOLS)" CMD="install"     INSTALLED="`brew list`"
+
+golisermo:  homebrew; @$(MAKE) _brew TITLE="golisermo deps" WANTED="sslscan"      CMD="install"     INSTALLED="`brew list`"
 
 casktools:  homebrew; @$(MAKE) _brew TITLE="homebrew casks" WANTED="$(CASKTOOLS)" CMD="cask instal" INSTALLED="`brew cask list`"
 
