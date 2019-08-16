@@ -22,8 +22,8 @@ DOTFILES    = .bash_login .bashrc
 # $<
 # $!
 
-DROPBOX_LINK  = .gitconfig .netrc .screenrc .vimrc .vim/autoload
-DROPBOX_COPY  = .dataprinter
+DROPBOX_LINK  = .gitconfig .screenrc .vimrc .vim/autoload
+DROPBOX_COPY  = .dataprinter .netrc
 DROPBOX_FILES = $(DROPBOX_LINK) $(DROPBOX_COPY)
 
 .PHONY: $(DOTFILES) $(DROPBOX_FILES) sudoers-local
@@ -134,6 +134,7 @@ copy_file_to_dir:
 	if ! cmp --quiet $(SRC)/$(FILE) $(DST)/$(FILE); then \
 		if [ -s $(DST)/$(FILE) ]; then \
 			echo "$(DST)/$(FILE) already exists; please resolve."; \
+			diff -u $(DST)/$(FILE) $(SRC)/$(FILE); \
 			exit 1; \
 		else \
 			echo "installing $(DST)/$(FILE)"; \
